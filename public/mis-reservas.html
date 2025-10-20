@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="regstyle.css">
+    <title>Mis Reservas - Tour Colombia</title>
+    <style>
+        .container-reservas {
+            max-width: 1200px;
+            margin: 50px auto;
+            padding: 30px;
+        }
+
+        .header-reservas {
+            background: #171aa8;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+            text-align: center;
+            border: 2px solid rgb(193, 219, 226);
+        }
+
+        .header-reservas h2 {
+            color: white;
+            margin-bottom: 10px;
+        }
+
+        .header-reservas p {
+            color: #818181;
+        }
+
+        .reserva-card {
+            background: #232c2a;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 3px 15px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .reserva-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 25px rgba(0,0,0,0.15);
+        }
+
+        .reserva-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .reserva-id {
+            font-size: 14px;
+            color: #a1a1a1;
+        }
+
+        .reserva-estado {
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .estado-activa {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .estado-cancelada {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .estado-completada {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .reserva-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .info-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .info-label {
+            font-size: 15px;
+            color: white;
+            margin-bottom: 5px;
+        }
+
+        .info-value {
+            font-size: 16px;
+            color: #afafaf;
+            font-weight: 600;
+        }
+
+        .no-reservas {
+            background: white;
+            padding: 60px 30px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 3px 15px rgba(0,0,0,0.1);
+        }
+
+        .no-reservas h3 {
+            color: #666;
+            margin-bottom: 20px;
+        }
+
+        .btn-nueva-reserva {
+            display: inline-block;
+            padding: 12px 30px;
+            background: green;
+            color: white;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: bold;
+            transition: transform 0.3s;
+        }
+
+        .btn-nueva-reserva:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn-volver {
+            display: inline-block;
+            padding: 10px 25px;
+            background: #042441;
+            color: white;
+            border-radius: 8px;
+            text-decoration: none;
+            margin-top: 20px;
+        }
+
+        .btn-volver:hover {
+            background: #afdcf1;
+            color: green;
+        }
+
+        .btn-eliminar-reserva {
+            padding: 8px 20px;
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .btn-eliminar-reserva:hover {
+            background: #6d040e;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container-reservas">
+    <div class="header-reservas">
+        <h2>Mis Reservas</h2>
+        <p id="nombreUsuario"></p>
+    </div>
+
+    <div id="mensaje" class="mensaje" style="display: none;"></div>
+
+    <div id="contenedorReservas">
+        <div class="loading">Cargando reservas...</div>
+    </div>
+
+    <div style="text-align: center; margin-top: 30px;">
+        <a href="reservas.html" class="btn-nueva-reserva">+ Nueva Reserva</a>
+        <a href="perfil.html" class="btn-volver">Volver al Perfil</a>
+    </div>
+</div>
+
+<script>
+let usuario = null;
+
+window.addEventListener('DOMContentLoaded', async () => {
+    const usuarioGuardado = localStorage.getItem('usuario');
+    
+    if (!usuarioGuardado) {
+        alert('Debes iniciar sesión para ver tus reservas');
+        window.location.href = 'iniciasession.html';
+        return;
+    }
+
+    usuario = JSON.parse(usuarioGuardado);
+    document.getElementById('nombreUsuario').textContent = usuario.nombres + ' ' + usuario.apellidos;
+
+    await cargarReservas();
+});
+
+async function cargarReservas() {
+    try {
+        const response = await fetch(`http://localhost:3000/api/reservas/usuario/${usuario.idUsuario}`);
+        const resultado = await response.json();
+
+        const contenedor = document.getElementById('contenedorReservas');
+
+        if (resultado.success) {
+            if (resultado.data.length === 0) {
+                contenedor.innerHTML = `
+                    <div class="no-reservas">
+                        <h3>No tienes reservas aún</h3>
+                        <p>¡Comienza a explorar Colombia y haz tu primera reserva!</p>
+                    </div>
+                `;
+            } else {
+                contenedor.innerHTML = resultado.data.map(reserva => crearCardReserva(reserva)).join('');
+            }
+        } else {
+            mostrarMensaje('Error al cargar las reservas', 'error');
+        }
+
+    } catch (error) {
+        console.error('Error:', error);
+        mostrarMensaje('Error de conexión con el servidor', 'error');
+    }
+}
+
+function crearCardReserva(reserva) {
+    const [fecha, hora] = reserva.FechaReserva.split(' ');
+    const [año, mes, dia] = fecha.split('-');
+    const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+    
+    const fechaFormateada = `${dia} de ${meses[parseInt(mes) - 1]} de ${año}, ${hora}`;
+
+    const estadoClass = reserva.Estado === 'Activa' ? 'estado-activa' : 
+                        reserva.Estado === 'Cancelada' ? 'estado-cancelada' : 
+                        'estado-completada';
+
+    return `
+        <div class="reserva-card" id="reserva-${reserva.IdReserva}">
+            <div class="reserva-header">
+                <span class="reserva-id">Reserva #${reserva.IdReserva}</span>
+                <span class="reserva-estado ${estadoClass}">${reserva.Estado}</span>
+            </div>
+            <div class="reserva-info">
+                <div class="info-item">
+                    <span class="info-label">Destino</span>
+                    <span class="info-value">${reserva.Destino}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Lugar</span>
+                    <span class="info-value">${reserva.Lugar}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Transporte</span>
+                    <span class="info-value">${reserva.Transporte}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Boletos</span>
+                    <span class="info-value">${reserva.CantidadBoletos}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Fecha de Reserva</span>
+                    <span class="info-value">${fechaFormateada}</span>
+                </div>
+            </div>
+            ${reserva.Estado === 'Activa' ? `
+                <div style="text-align: right; margin-top: 15px;">
+                    <button class="btn-eliminar-reserva" onclick="eliminarReserva(${reserva.IdReserva})">
+                        Eliminar Reserva
+                    </button>
+                </div>
+            ` : ''}
+        </div>
+    `;
+}
+
+async function eliminarReserva(idReserva) {
+    if (!confirm('¿Estás seguro de que deseas eliminar esta reserva?')) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`http://localhost:3000/api/reservas/${idReserva}`, {
+            method: 'DELETE'
+        });
+
+        const resultado = await response.json();
+
+        if (resultado.success) {
+            mostrarMensaje('Reserva eliminada exitosamente', 'exito');
+            
+            const card = document.getElementById(`reserva-${idReserva}`);
+            card.style.transition = 'all 0.3s';
+            card.style.opacity = '0';
+            card.style.transform = 'scale(0.9)';
+            
+            setTimeout(() => {
+                card.remove();
+                
+                const contenedor = document.getElementById('contenedorReservas');
+                if (contenedor.children.length === 0) {
+                    contenedor.innerHTML = `
+                        <div class="no-reservas">
+                            <h3>No tienes reservas</h3>
+                            <p>¡Comienza a explorar Colombia y haz tu primera reserva!</p>
+                        </div>
+                    `;
+                }
+            }, 300);
+        } else {
+            mostrarMensaje(resultado.message, 'error');
+        }
+
+    } catch (error) {
+        console.error('Error:', error);
+        mostrarMensaje('Error al eliminar la reserva', 'error');
+    }
+}
+
+function mostrarMensaje(texto, tipo) {
+    const mensaje = document.getElementById('mensaje');
+    mensaje.textContent = texto;
+    mensaje.className = 'mensaje ' + tipo;
+    mensaje.style.display = 'block';
+
+    setTimeout(() => {
+        mensaje.style.display = 'none';
+    }, 5000);
+}
+</script>
+
+</body>
+</html>

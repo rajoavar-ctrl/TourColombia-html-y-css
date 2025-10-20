@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="regstyle.css">
+    <title>Mi Perfil - Tour Colombia</title>
+    <style>
+        .perfil-container {
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 30px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+
+        .perfil-header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .perfil-info {
+            margin-bottom: 30px;
+        }
+
+        .info-grupo {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 5px;
+        }
+
+        .info-grupo label {
+            display: block;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .info-grupo p {
+            margin: 0;
+            color: #666;
+            font-size: 16px;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+
+        .btn-reservas {
+    background: #17a2b8;
+    color: white;
+}
+
+.btn-reservas:hover {
+    background: #138496;
+}
+        .btn-editar {
+            background: #007bff;
+            color: white;
+        }
+
+        .btn-editar:hover {
+            background: #0056b3;
+        }
+
+        .btn-cerrar {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-cerrar:hover {
+            background: #545b62;
+        }
+
+        .btn-eliminar {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-eliminar:hover {
+            background: #c82333;
+        }
+
+        .form-editar {
+            display: none;
+        }
+
+        .form-editar.activo {
+            display: block;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 15% auto;
+            padding: 30px;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+
+
+        .btn-home {
+    background: #28a745;
+    color: white;
+}
+
+.btn-home:hover {
+    background: #218838;
+}
+
+body {
+    body {
+    background-image: url("media/Viaja-por-colombia.jpg");
+    background-size: cover;
+    background-position: center;
+    font-family: 'Franklin Gothic Medium', sans-serif;
+}
+}
+
+.perfil-container {
+    max-width: 800px;
+    margin: 50px auto;
+    padding: 40px;
+    background: #232c2a;
+    border-radius: 15px;
+    box-shadow: 0 10px 50px rgba(0, 0, 0, 0.5);
+    border: 3px solid #4169E1;
+}
+
+.perfil-header {
+    text-align: center;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.perfil-header h2,
+.perfil-header p {
+    color: white;
+    margin: 10px 0;
+}
+
+.info-grupo {
+    margin-bottom: 20px;
+    padding: 15px;
+    background: darkblue;
+    border-radius: 8px;
+     border: 1px solid #1f53c5; 
+}
+
+.info-grupo label {
+    display: block;
+    font-weight: bold;
+    color: white;
+    margin-bottom: 5px;
+}
+
+.info-grupo p {
+    margin: 0;
+    color: #E0E0E0;
+    font-size: 16px;
+}
+
+/* Inputs en modo edición */
+.cubos {
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.cubos {background: rgba(0, 0, 139, 0.95) /* Azul oscuro sólido */}
+
+.cubos::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.cubos:focus {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: #87CEEB;
+    outline: none;
+}
+    </style>
+</head>
+<body>
+
+<div class="perfil-container">
+    <div class="perfil-header">
+        <h2>Mi Perfil</h2>
+        <p>Bienvenido, <span id="nombreUsuario"></span></p>
+    </div>
+
+    <!-- Mensajes -->
+    <div id="mensaje" class="mensaje" style="display: none;"></div>
+
+    <!-- Vista de información (por defecto) -->
+    <div id="vistaInfo" class="perfil-info">
+        <div class="info-grupo">
+            <label>Nombres:</label>
+            <p id="infoNombres"></p>
+        </div>
+
+        <div class="info-grupo">
+            <label>Apellidos:</label>
+            <p id="infoApellidos"></p>
+        </div>
+
+        <div class="info-grupo">
+            <label>Cédula:</label>
+            <p id="infoCedula"></p>
+        </div>
+
+        <div class="info-grupo">
+            <label>Correo:</label>
+            <p id="infoCorreo"></p>
+        </div>
+
+
+        <div class="btn-group">
+            <button class="btn btn-home" onclick="irAPaginaPrincipal()">
+                🏠 Ir a Ver Los Destinos
+            </button>
+            <button class="btn btn-reservas" onclick="verMisReservas()">
+                📋 Ver Mis Reservas
+            </button>
+            <button class="btn btn-editar" onclick="mostrarFormularioEdicion()">
+                ✏️ Editar Información
+            </button>
+            <button class="btn btn-cerrar" onclick="cerrarSesion()">
+                🚪 Cerrar Sesión
+            </button>
+            <button class="btn btn-eliminar" onclick="mostrarModalEliminar()">
+                🗑️ Eliminar Cuenta
+            </button>
+        </div>
+    </div>
+
+    <!-- Formulario de edición (oculto por defecto) -->
+    <div id="formEditar" class="form-editar">
+        <form id="formularioEdicion">
+            <label for="editNombres">Nombres:</label>
+            <input class="cubos" type="text" id="editNombres" required>
+
+            <label for="editApellidos">Apellidos:</label>
+            <input class="cubos" type="text" id="editApellidos" required>
+
+            <label for="editCedula">Cédula:</label>
+            <input class="cubos" type="text" id="editCedula" required>
+
+            <label for="editCorreo">Correo:</label>
+            <input class="cubos" type="email" id="editCorreo" required>
+
+            <div class="btn-group">
+                <button type="submit" class="btn btn-editar">💾 Guardar Cambios</button>
+                <button type="button" class="btn btn-cerrar" onclick="cancelarEdicion()">❌ Cancelar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal de confirmación para eliminar -->
+<div id="modalEliminar" class="modal">
+    <div class="modal-content">
+        <h3>⚠️ ¿Estás seguro?</h3>
+        <p>Esta acción eliminará tu cuenta y toda tu información de forma permanente.</p>
+        <p><strong>Esta acción no se puede deshacer.</strong></p>
+        
+        <div class="modal-buttons">
+            <button class="btn btn-eliminar" onclick="eliminarCuenta()">Sí, eliminar mi cuenta</button>
+            <button class="btn btn-cerrar" onclick="cerrarModal()">Cancelar</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let usuario = null;
+
+    // Verificar si el usuario está logueado
+    window.addEventListener('DOMContentLoaded', () => {
+        const usuarioGuardado = localStorage.getItem('usuario');
+        
+        if (!usuarioGuardado) {
+            window.location.href = 'iniciasession.html';
+            return;
+        }
+
+        usuario = JSON.parse(usuarioGuardado);
+        cargarDatosUsuario();
+    });
+
+    function cargarDatosUsuario() {
+        document.getElementById('nombreUsuario').textContent = usuario.nombres;
+        document.getElementById('infoNombres').textContent = usuario.nombres;
+        document.getElementById('infoApellidos').textContent = usuario.apellidos;
+        document.getElementById('infoCedula').textContent = usuario.cedula;
+        document.getElementById('infoCorreo').textContent = usuario.correo;
+    }
+
+    function mostrarFormularioEdicion() {
+        // Ocultar vista de información
+        document.getElementById('vistaInfo').style.display = 'none';
+        
+        // Mostrar formulario de edición
+        document.getElementById('formEditar').classList.add('activo');
+        
+        // Prellenar campos
+        document.getElementById('editNombres').value = usuario.nombres;
+        document.getElementById('editApellidos').value = usuario.apellidos;
+        document.getElementById('editCedula').value = usuario.cedula;
+        document.getElementById('editCorreo').value = usuario.correo;
+    }
+
+    function cancelarEdicion() {
+        document.getElementById('formEditar').classList.remove('activo');
+        document.getElementById('vistaInfo').style.display = 'block';
+    }
+
+    // Manejar edición de usuario
+    document.getElementById('formularioEdicion').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const datosActualizados = {
+            nombres: document.getElementById('editNombres').value.trim(),
+            apellidos: document.getElementById('editApellidos').value.trim(),
+            cedula: document.getElementById('editCedula').value.trim(),
+            correo: document.getElementById('editCorreo').value.trim()
+        };
+
+        try {
+            const response = await fetch(`http://localhost:3000/api/usuarios/${usuario.idUsuario}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(datosActualizados)
+            });
+
+            const resultado = await response.json();
+
+            if (resultado.success) {
+                // Actualizar localStorage
+                usuario = { ...usuario, ...datosActualizados };
+                localStorage.setItem('usuario', JSON.stringify(usuario));
+                
+                // Recargar datos en la vista
+                cargarDatosUsuario();
+                cancelarEdicion();
+                
+                mostrarMensaje('✅ Información actualizada exitosamente', 'exito');
+            } else {
+                mostrarMensaje('❌ ' + resultado.message, 'error');
+            }
+
+        } catch (error) {
+            console.error('Error:', error);
+            mostrarMensaje('❌ Error al actualizar la información', 'error');
+        }
+    });
+
+    function mostrarModalEliminar() {
+        document.getElementById('modalEliminar').style.display = 'block';
+    }
+
+    function cerrarModal() {
+        document.getElementById('modalEliminar').style.display = 'none';
+    }
+
+    async function eliminarCuenta() {
+        try {
+            const response = await fetch(`http://localhost:3000/api/usuarios/${usuario.idUsuario}`, {
+                method: 'DELETE'
+            });
+
+            const resultado = await response.json();
+
+            if (resultado.success) {
+                alert('✅ Tu cuenta ha sido eliminada exitosamente');
+                localStorage.removeItem('usuario');
+                window.location.href = 'registrate.html';
+            } else {
+                mostrarMensaje('❌ ' + resultado.message, 'error');
+                cerrarModal();
+            }
+
+        } catch (error) {
+            console.error('Error:', error);
+            mostrarMensaje('❌ Error al eliminar la cuenta', 'error');
+            cerrarModal();
+        }
+    }
+
+    function cerrarSesion() {
+        if (confirm('¿Estás seguro que deseas cerrar sesión?')) {
+            localStorage.removeItem('usuario');
+            window.location.href = 'iniciasession.html';
+        }
+    }
+
+    function mostrarMensaje(texto, tipo) {
+        const mensaje = document.getElementById('mensaje');
+        mensaje.textContent = texto;
+        mensaje.className = `mensaje ${tipo}`;
+        mensaje.style.display = 'block';
+
+        setTimeout(() => {
+            mensaje.style.display = 'none';
+        }, 5000);
+    }
+
+
+
+
+    function irAPaginaPrincipal() {
+    window.location.href = 'codigo.html';
+}
+
+function verMisReservas() {
+    window.location.href = 'mis-reservas.html';
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="regstyle.css">
+    <title>Iniciar Sesion</title>
+</head>
+<body>
+
+<section class="form-registro">
+    <h4>Iniciar Sesion</h4>
+    <div id="mensaje" class="mensaje" style="display: none;"></div>
+    <form id="formLogin">
+        <label for="correo">Correo:</label>
+        <input class="cubos" type="email" id="correo" placeholder="Ingrese su correo" required>
+        <label for="password">Contrasena:</label>
+        <input class="cubos" type="password" id="password" placeholder="Ingrese su contrasena" required>
+        <input class="botons" type="submit" value="Iniciar Sesion" id="btnLogin">
+        <p><a href="registrate.html">No tienes cuenta? Registrate aqui</a></p>
+    </form>
+</section>
+
+<script>
+const formLogin = document.getElementById('formLogin');
+const mensajeDiv = document.getElementById('mensaje');
+const btnLogin = document.getElementById('btnLogin');
+
+formLogin.addEventListener('submit', async function(evento) {
+    evento.preventDefault();
+    
+    const correo = document.getElementById('correo').value.trim();
+    const password = document.getElementById('password').value;
+    
+    if (!correo || !password) {
+        mostrarMensaje('Complete todos los campos', 'error');
+        return;
+    }
+    
+    btnLogin.disabled = true;
+    btnLogin.value = 'Iniciando...';
+    
+    try {
+        const respuesta = await fetch('http://localhost:3000/api/usuarios/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ correo: correo, password: password })
+        });
+        
+        const datos = await respuesta.json();
+        
+        if (datos.success) {
+            localStorage.setItem('usuario', JSON.stringify(datos.data));
+            mostrarMensaje('Login exitoso', 'exito');
+            setTimeout(function() {
+                window.location.href = 'perfil.html';
+            }, 1500);
+        } else {
+            mostrarMensaje(datos.message, 'error');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        mostrarMensaje('Error de conexion', 'error');
+    } finally {
+        btnLogin.disabled = false;
+        btnLogin.value = 'Iniciar Sesion';
+    }
+});
+
+function mostrarMensaje(texto, tipo) {
+    mensajeDiv.textContent = texto;
+    mensajeDiv.className = 'mensaje ' + tipo;
+    mensajeDiv.style.display = 'block';
+    setTimeout(function() {
+        mensajeDiv.style.display = 'none';
+    }, 5000);
+}
+</script>
+
+</body>
+</html>

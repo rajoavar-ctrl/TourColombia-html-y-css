@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="regstyle.css">
+    <title>Hacer Reserva - Tour Colombia</title>
+    <style>
+        .form-reserva {
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 40px;
+           background: #232c2a;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .form-reserva h2 {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+             background: #232c2a;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+            
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #232c2a;
+            font-weight: 600;
+             
+        }
+
+        .form-group select,
+        .form-group input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 15px;
+            transition: all 0.3s;
+            background: darkblue;
+            border: 1px solid #1f53c5;
+            color: white;
+        }
+
+        .form-group select:focus,
+        .form-group input:focus {
+            outline: white;
+            border-color: #667eea;
+            box-shadow: 0 0 10px rgba(102, 126, 234, 0.2);
+            
+        }
+
+        .btn-reservar {
+            width: 100%;
+            padding: 14px;
+            background: green;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 10px;
+        }
+
+        .btn-reservar:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-reservar:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .btn-volver {
+            width: 100%;
+            padding: 12px;
+            background: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .btn-volver:hover {
+            background: #5a6268;
+        }
+
+        .info-usuario {
+            background: #95bbc5;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+            border-color: #e2e4ec;
+            border-width: 5em;
+            
+        }
+
+        .info-usuario p {
+            margin: 5px 0;
+            color: #666;
+        }
+
+        .info-usuario strong {
+            color: rgb(12, 12, 12);
+        }
+
+        .btn-reservas {
+    width: 100%;
+    padding: 12px;
+    background: #17a2b8;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    cursor: pointer;
+    margin-top: 10px;
+}
+
+.btn-reservas:hover {
+    background: #138496;}
+    
+    </style>
+</head>
+<body>
+
+<div class="form-reserva">
+    <h2>Hacer una Reserva</h2>
+
+    <div id="mensaje" class="mensaje" style="display: none;"></div>
+
+    <div id="infoUsuario" class="info-usuario">
+        <p><strong id="nombreUsuario"></strong></p>
+        <p id="correoUsuario"></p>
+    </div>
+
+    <form id="formReserva">
+        <div class="form-group">
+            <label for="destino">Destino:</label>
+            <select id="destino" required>
+                <option value="">Seleccione un destino</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="lugar">Lugar:</label>
+            <select id="lugar" required disabled>
+                <option value="">Primero seleccione un destino</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="transporte">Medio de transporte:</label>
+            <select id="transporte" required>
+                <option value="">Seleccione transporte</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="boletos">Cantidad de boletos:</label>
+            <input type="number" id="boletos" min="1" max="20" value="1" required>
+        </div>
+
+       <button type="submit" class="btn-reservar" id="btnReservar">Confirmar Reserva</button>
+<button type="button" class="btn-reservas" onclick="window.location.href='mis-reservas.html'">📋 Ver Mis Reservas</button>
+<button type="button" class="btn-volver" onclick="window.location.href='codigo.html'">Volver a la página principal</button>
+    </form>
+</div>
+
+<script>
+let usuario = null;
+
+window.addEventListener('DOMContentLoaded', async () => {
+    const usuarioGuardado = localStorage.getItem('usuario');
+    
+    if (!usuarioGuardado) {
+        alert('Debes iniciar sesión para hacer una reserva');
+        window.location.href = 'iniciasession.html';
+        return;
+    }
+
+    usuario = JSON.parse(usuarioGuardado);
+    document.getElementById('nombreUsuario').textContent = usuario.nombres + ' ' + usuario.apellidos;
+    document.getElementById('correoUsuario').textContent = usuario.correo;
+
+    await cargarOpciones();
+});
+
+async function cargarOpciones() {
+    try {
+        const response = await fetch('http://localhost:3000/api/reservas/opciones');
+        const resultado = await response.json();
+
+        if (resultado.success) {
+            const selectDestino = document.getElementById('destino');
+            const selectTransporte = document.getElementById('transporte');
+
+            resultado.data.destinos.forEach(destino => {
+                const option = document.createElement('option');
+                option.value = destino.IdDestino;
+                option.textContent = destino.Nombre;
+                selectDestino.appendChild(option);
+            });
+
+            resultado.data.transportes.forEach(transporte => {
+                const option = document.createElement('option');
+                option.value = transporte.IdTransporte;
+                option.textContent = transporte.Nombre;
+                selectTransporte.appendChild(option);
+            });
+        }
+    } catch (error) {
+        console.error('Error al cargar opciones:', error);
+        mostrarMensaje('Error al cargar las opciones', 'error');
+    }
+}
+
+document.getElementById('destino').addEventListener('change', async function() {
+    const idDestino = this.value;
+    const selectLugar = document.getElementById('lugar');
+    
+    selectLugar.innerHTML = '<option value="">Cargando...</option>';
+    selectLugar.disabled = true;
+
+    if (!idDestino) {
+        selectLugar.innerHTML = '<option value="">Primero seleccione un destino</option>';
+        return;
+    }
+
+    try {
+        const response = await fetch(`http://localhost:3000/api/reservas/lugares/${idDestino}`);
+        const resultado = await response.json();
+
+        selectLugar.innerHTML = '<option value="">Seleccione un lugar</option>';
+        
+        if (resultado.success) {
+            resultado.data.forEach(lugar => {
+                const option = document.createElement('option');
+                option.value = lugar.IdLugar;
+                option.textContent = lugar.Nombre;
+                selectLugar.appendChild(option);
+            });
+            selectLugar.disabled = false;
+        }
+    } catch (error) {
+        console.error('Error al cargar lugares:', error);
+        selectLugar.innerHTML = '<option value="">Error al cargar lugares</option>';
+    }
+});
+
+document.getElementById('formReserva').addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    const btnReservar = document.getElementById('btnReservar');
+    btnReservar.disabled = true;
+    btnReservar.textContent = 'Procesando...';
+
+    const datos = {
+        idUsuario: usuario.idUsuario,
+        cantidadBoletos: parseInt(document.getElementById('boletos').value),
+        idTransporte: parseInt(document.getElementById('transporte').value),
+        idDestino: parseInt(document.getElementById('destino').value),
+        idLugar: parseInt(document.getElementById('lugar').value)
+    };
+
+    try {
+        const response = await fetch('http://localhost:3000/api/reservas', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(datos)
+        });
+
+        const resultado = await response.json();
+
+        if (resultado.success) {
+            mostrarMensaje('Reserva creada exitosamente', 'exito');
+            setTimeout(() => {
+                window.location.href = 'perfil.html';
+            }, 2000);
+        } else {
+            mostrarMensaje(resultado.message || 'Error al crear la reserva', 'error');
+            btnReservar.disabled = false;
+            btnReservar.textContent = 'Confirmar Reserva';
+        }
+
+    } catch (error) {
+        console.error('Error:', error);
+        mostrarMensaje('Error de conexión con el servidor', 'error');
+        btnReservar.disabled = false;
+        btnReservar.textContent = 'Confirmar Reserva';
+    }
+});
+
+function mostrarMensaje(texto, tipo) {
+    const mensaje = document.getElementById('mensaje');
+    mensaje.textContent = texto;
+    mensaje.className = 'mensaje ' + tipo;
+    mensaje.style.display = 'block';
+
+    setTimeout(() => {
+        mensaje.style.display = 'none';
+    }, 5000);
+}
+</script>
+
+</body>
+</html>
