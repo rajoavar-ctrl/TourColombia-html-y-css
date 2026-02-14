@@ -1,4 +1,5 @@
-El aplicativo está construido por medio de Visual Studio code, se usan las tecnologias de SQL Server, JavaScript y Note.js
+
+The aplication is building in VScode, are used tecnoligies like HTML5, CSS3, SQLServer, JavaScript, Note.js and Express.
 
 
 # TourColombia - Tourism Platform
