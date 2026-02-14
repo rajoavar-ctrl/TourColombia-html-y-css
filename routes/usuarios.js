@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcrypt');
 const { getConnection, sql } = require('../config/database');
+const crypto = require('crypto');
 
 // ============================================
 // RUTA: Registrar nuevo usuario
@@ -321,6 +322,215 @@ router.put('/:id', async (req, res) => {
         });
     }
 });
+
+// ============================================
+// RUTA: Generar Token de recuperación
+// POST /api/usuarios/:id
+// ============================================
+
+// Solicitar Token de contraseña
+router.post('/solicitar-recuperacion', async (req, res) => {
+    try {
+        const { correo } = req.body;
+
+        console.log('📧 Solicitud de recuperación para:', correo);
+
+        if (!correo) {
+            return res.status(400).json({
+                success: false,
+                message: 'El correo es obligatorio'
+            });
+        }
+
+        const pool = await getConnection();
+
+        // Verificar que el usuario existe
+        const usuario = await pool.request()
+            .input('correo', sql.NVarChar, correo)
+            .query('SELECT IdUsuario, Nombres FROM Usuarios WHERE Correo = @correo');
+
+        // Por seguridad, siempre respondemos lo mismo (exista o no el correo)
+        if (usuario.recordset.length === 0) {
+            console.log('⚠️ Correo no existe, pero no lo revelamos');
+            return res.json({
+                success: true,
+                message: 'Si el correo existe, recibirás un enlace de recuperación'
+            });
+        }
+
+        const idUsuario = usuario.recordset[0].IdUsuario;
+        
+        // Generar token único y seguro
+        const token = crypto.randomBytes(32).toString('hex');
+        
+        // Token válido por 1 hora
+        const fechaExpiracion = new Date();
+        fechaExpiracion.setHours(fechaExpiracion.getHours() + 1);
+
+        // Guardar token en BD
+        await pool.request()
+            .input('idUsuario', sql.Int, idUsuario)
+            .input('token', sql.NVarChar, token)
+            .input('fechaExpiracion', sql.DateTime, fechaExpiracion)
+            .query(`
+                INSERT INTO RecuperacionPassword (IdUsuario, Token, FechaExpiracion)
+                VALUES (@idUsuario, @token, @fechaExpiracion)
+            `);
+
+        console.log('✅ Token generado:', token);
+        console.log(`🔗 Enlace: http://localhost:3000/restablecer-password.html?token=${token}`);
+
+        res.json({
+            success: true,
+            message: 'Si el correo existe, recibirás un enlace de recuperación',
+            // ⚠️ SOLO PARA DESARROLLO - QUITAR EN PRODUCCIÓN
+            debug: {
+                token: token,
+                enlace: `http://localhost:3000/restablecer-password.html?token=${token}`
+            }
+        });
+
+    } catch (error) {
+        console.error('❌ Error al solicitar recuperación:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error al procesar la solicitud'
+        });
+    }
+});
+
+
+
+
+
+// ============================================
+// RUTA: Restablecer contraseña
+// POST /api/usuarios/:id
+// ============================================
+
+//Restablecer contraseña
+router.post('/restablecer-password', async (req, res) => {
+    try {
+        console.log('🔧 Endpoint de restablecimiento llamado');
+        console.log('Body recibido:', req.body);
+
+        const { token, nuevaPassword } = req.body;
+
+        // ===== VALIDACIONES =====
+        if (!token || !nuevaPassword) {
+            console.log('❌ Faltan datos');
+            return res.status(400).json({
+                success: false,
+                message: 'Token y nueva contraseña son obligatorios'
+            });
+        }
+
+        if (nuevaPassword.length < 6) {
+            console.log('❌ Contraseña muy corta');
+            return res.status(400).json({
+                success: false,
+                message: 'La contraseña debe tener al menos 6 caracteres'
+            });
+        }
+
+        const pool = await getConnection();
+
+        // ===== 1. BUSCAR TOKEN EN LA BASE DE DATOS =====
+        console.log('🔍 Buscando token:', token);
+        const recuperacion = await pool.request()
+            .input('token', sql.NVarChar, token)
+            .query(`
+                SELECT IdRecuperacion, IdUsuario, FechaExpiracion, Usado
+                FROM RecuperacionPassword
+                WHERE Token = @token
+            `);
+
+        if (recuperacion.recordset.length === 0) {
+            console.log('❌ Token no existe en BD');
+            return res.status(400).json({
+                success: false,
+                message: 'Token inválido'
+            });
+        }
+
+        const rec = recuperacion.recordset[0];
+        console.log('✅ Token encontrado:', {
+            IdRecuperacion: rec.IdRecuperacion,
+            IdUsuario: rec.IdUsuario,
+            Usado: rec.Usado,
+            FechaExpiracion: rec.FechaExpiracion
+        });
+
+        // ===== 2. VERIFICAR SI YA FUE USADO =====
+        if (rec.Usado === 1) {
+            console.log('❌ Token ya fue usado');
+            return res.status(400).json({
+                success: false,
+                message: 'Este enlace ya fue utilizado'
+            });
+        }
+
+        // ===== 3. VERIFICAR SI EXPIRÓ =====
+        const ahora = new Date();
+        const expiracion = new Date(rec.FechaExpiracion);
+        
+        if (ahora > expiracion) {
+            console.log('❌ Token expirado');
+            console.log('Ahora:', ahora);
+            console.log('Expiracion:', expiracion);
+            return res.status(400).json({
+                success: false,
+                message: 'Este enlace ha expirado. Solicita uno nuevo'
+            });
+        }
+
+        // ===== 4. GENERAR NUEVO HASH CON BCRYPT =====
+        console.log('🔐 Generando hash de nueva contraseña...');
+        const salt = await bcrypt.genSalt(10);
+        const hash = await bcrypt.hash(nuevaPassword, salt);
+        console.log('✅ Hash generado:', hash.substring(0, 20) + '...');
+
+        // ===== 5. ACTUALIZAR CONTRASEÑA EN USUARIOS =====
+        console.log('💾 Actualizando contraseña en tabla Usuarios...');
+        const updateResult = await pool.request()
+            .input('idUsuario', sql.Int, rec.IdUsuario)
+            .input('hash', sql.NVarChar, hash)
+            .query(`
+                UPDATE Usuarios
+                SET PasswordHash = @hash
+                WHERE IdUsuario = @idUsuario
+            `);
+
+        console.log('✅ Filas afectadas:', updateResult.rowsAffected[0]);
+
+        // ===== 6. MARCAR TOKEN COMO USADO =====
+        console.log('🔒 Marcando token como usado...');
+        await pool.request()
+            .input('idRecuperacion', sql.Int, rec.IdRecuperacion)
+            .query(`
+                UPDATE RecuperacionPassword
+                SET Usado = 1
+                WHERE IdRecuperacion = @idRecuperacion
+            `);
+
+        console.log('✅✅✅ CONTRASEÑA ACTUALIZADA EXITOSAMENTE ✅✅✅');
+
+        res.json({
+            success: true,
+            message: 'Contraseña actualizada exitosamente'
+        });
+
+    } catch (error) {
+        console.error('❌❌❌ ERROR AL RESTABLECER:', error);
+        console.error('Stack:', error.stack);
+        res.status(500).json({
+            success: false,
+            message: 'Error al restablecer contraseña',
+            error: error.message
+        });
+    }
+});
+
 
 // ============================================
 // RUTA: Eliminar cuenta
