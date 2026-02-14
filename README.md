@@ -49,14 +49,6 @@ npm install
 Configure Environment Variables:
 Ensure you have a .env file in the root directory with the following content:
 
-## Fragmento de código
-DB_USER=turismo_login
-DB_PASS=sena@tour!23
-DB_SERVER=localhost
-DB_NAME=TourColombia
-PORT=3000
-Start the Server:
-
 Bash
 npm start
 Visit: http://localhost:3000
